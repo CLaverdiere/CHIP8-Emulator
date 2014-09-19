@@ -17,7 +17,7 @@ describe CHIP8 do
     end
   end
 
-  describe "when asked about registers" do 
+  describe "when asked about registers" do
     it "must have 16, 8-bit data registers" do
       @chip.registers.size.must_equal 16
       @chip.registers.sample.must_be :<=, 255
@@ -41,6 +41,13 @@ describe CHIP8 do
     it "must have 64x32 pixels" do
       @chip.display.size.must_equal 32
       @chip.display.sample.size.must_equal 64
+    end
+  end
+
+  describe "when asked about opcodes" do
+    it "must be able to print the opcode's description when passed" do
+      opcode = 0x00e0
+      @chip.get_opcode_desc(opcode).wont_be_nil
     end
   end
 end
