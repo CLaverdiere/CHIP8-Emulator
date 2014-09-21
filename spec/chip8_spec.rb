@@ -1,9 +1,12 @@
+# Chip8 emulator tests.
 # Gathered requirements from: http://en.wikipedia.org/wiki/CHIP-8
 
 require "minitest/autorun"
 require "minitest/spec"
 
 require_relative "../src/chip8"
+
+SAMPLE_ROM = "games/PONG"
 
 describe CHIP8 do
   before do
@@ -55,4 +58,27 @@ describe CHIP8 do
       @chip.get_opcode_desc(opcode).wont_be_nil
     end
   end
+
+  describe "when loading in a rom" do
+    it "must fill the memory buffer with opcode data" do
+      @chip.load_rom(SAMPLE_ROM)
+      @chip.memory.inject(:+).wont_equal 0
+    end
+  end
+
+  describe "when executing instructions" do
+    it "must increment the instruction pointer" do
+      current_ip = @chip.instruction_ptr
+      @chip.next_instruction()
+      current_ip.must_equal @chip.instruction_ptr - 2
+    end
+  end
+
+  describe "when killing the program" do
+    it "should set program_running to false" do
+      @chip.kill_program()
+      @chip.program_running.must_equal false
+    end
+  end
+
 end
