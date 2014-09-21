@@ -1,10 +1,3 @@
-# Opcode Names
-# ["00E0", "00EE", "0NNN", "1NNN", "2NNN", "3XNN", "4XNN",
-#  "5XY0", "6XNN", "7XNN", "8XY0", "8XY1", "8XY2", "8XY3",
-#  "8XY4", "8XY5", "8XY6", "8XY7", "8XYE", "9XY0", "ANNN",
-#  "BNNN", "CXNN", "DXYN", "EX9E", "EXA1", "FX07", "FX0A",
-#  "FX15", "FX18", "FX1E", "FX29", "FX33", "FX55", "FX65"]
-
 class CHIP8
   attr_reader :display, :memory, :opcode_table, :registers, :stack, :timers
 
@@ -18,14 +11,20 @@ class CHIP8
   end
 
   # Input: a hex opcode. ex: 0x5f3e
-  # Output: The description closest matching the supplied opcode.
+  # Output: The matching symbolic opcode from our opcode table.
   # Since our opcode table stores symbols, like 'X', 'Y', and 'N',
   #   we just do a naive word score to get the closest matching opcode.
-  def get_opcode_desc(opcode)
+  def get_opcode(opcode)
     formatted_opcode = "0000"
     formatted_opcode[4 - opcode.to_s(16).length, 4] = opcode.to_s(16).upcase
     match = @opcode_table.sort_by { |oc| score_word(oc[0], formatted_opcode) }
-    return match.last[1]
+    return match.last[0]
+  end
+
+  # Return description of supplied opcode from table.
+  def get_opcode_desc(opcode)
+    sym_opcode = get_opcode(opcode)
+    return @opcode_table[sym_opcode]
   end
 
   # Score a word, weighing earlier characters heavier.
@@ -54,123 +53,52 @@ class CHIP8
 
   # Execute the given instruction.
   def do_instruction(opcode)
-    n1 = (opcode & 0xf000) >> 12
-    n2 = (opcode & 0x0f00) >> 8
-    n3 = (opcode & 0x00f0) >> 4
-    n4 = (opcode & 0x000f)
+    sym_op = get_opcode(opcode)
 
-    # This was a lazy idea. Going to delete this asap.
-    # case n1
-    # when 0x0
-    #   case n3
-    #   when 0xe
-    #     case n4
-    #     when 0x0
-    #       # 00E0
-    #     when 0xe
-    #       # 00EE
-    #     end
-    #   else
-    #     # 0NNN
-    #   end
-    #
-    # when 0x1
-    #   # 1NNN
-    #
-    # when 0x2
-    #   # 2NNN
-    #
-    # when 0x3
-    #   # 3XNN
-    #
-    # when 0x4
-    #   # 4XNN
-    #
-    # when 0x5
-    #   # 5XY0
-    #
-    # when 0x6
-    #   # 6XNN
-    #
-    # when 0x7
-    #   # 7XNN
-    #
-    # when 0x8
-    #   case n4
-    #   when 0x0
-    #     #8XY0
-    #   when 0x1
-    #     #8XY1
-    #   when 0x2
-    #     #8XY2
-    #   when 0x3
-    #     #8XY3
-    #   when 0x4
-    #     #8XY4
-    #   when 0x5
-    #     #8XY5
-    #   when 0x6
-    #     #8XY6
-    #   when 0x7
-    #     #8XY7
-    #   when 0xe
-    #     #8XYE
-    #   end
-    #
-    # when 0x9
-    #   # 9XY0
-    #
-    # when 0xa
-    #   # ANNN
-    #
-    # when 0xb
-    #   # BNNN
-    #
-    # when 0xc
-    #   # CXNN
-    #
-    # when 0xd
-    #   # DXYN
-    #
-    # when 0xe
-    #   case n3
-    #   when 0x9
-    #     # EX9E
-    #   else
-    #     # EXA1
-    #   end
-    #
-    # when 0xf
-    #   case n3
-    #   when 0x0
-    #     case n4
-    #     when 0x7
-    #       # FX07
-    #     when 0xa
-    #       # FX0A
-    #     end
-    #   when 0x1
-    #     case n4
-    #     when 0x5
-    #       # FX15
-    #     when 0x8
-    #       # FX18
-    #     when 0xe
-    #       # FX1E
-    #     end
-    #   when 0x2
-    #     # FX29
-    #   when 0x3
-    #     # FX33
-    #   when 0x5
-    #     # FX55
-    #   when 0x6
-    #     # FX65
-    #   end
-    #
-    # else
-    #   # No match
-    #   return 1
-    # end
+    # n1 = (opcode & 0xf000) >> 12
+    # n2 = (opcode & 0x0f00) >> 8
+    # n3 = (opcode & 0x00f0) >> 4
+    # n4 = (opcode & 0x000f)
+
+    print "Doing op: ", get_opcode_desc(opcode)
+
+    # Massive opcode conditional incoming.
+    case sym_op
+    when "00E0"
+    when "00EE"
+    when "0NNN"
+    when "1NNN"
+    when "2NNN"
+    when "3XNN"
+    when "4XNN"
+    when "5XY0"
+    when "6XNN"
+    when "7XNN"
+    when "8XY0"
+    when "8XY1"
+    when "8XY2"
+    when "8XY3"
+    when "8XY4"
+    when "8XY5"
+    when "8XY6"
+    when "8XY7"
+    when "8XYE"
+    when "9XY0"
+    when "ANNN"
+    when "BNNN"
+    when "CXNN"
+    when "DXYN"
+    when "EX9E"
+    when "EXA1"
+    when "FX07"
+    when "FX0A"
+    when "FX15"
+    when "FX18"
+    when "FX1E"
+    when "FX29"
+    when "FX33"
+    when "FX55"
+    when "FX65"
+    end
   end
 end

@@ -45,6 +45,11 @@ describe CHIP8 do
   end
 
   describe "when asked about opcodes" do
+    it "must be able to find matching opcode when given hex number" do
+      opcode = 0x00e0
+      @chip.get_opcode(opcode).wont_be_nil
+    end
+
     it "must be able to print the opcode's description when passed" do
       opcode = 0x00e0
       @chip.get_opcode_desc(opcode).wont_be_nil
