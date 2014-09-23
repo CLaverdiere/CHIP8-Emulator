@@ -4,6 +4,7 @@ class CHIP8
   attr_accessor :display, :instruction_ptr, :memory, :program_running, :registers, :stack
   attr_reader :opcode_table, :timers
 
+  # TODO need address register?
   def initialize()
     @display = [[0] * 0x40] * 0x20
     @instruction_ptr = 0
@@ -19,33 +20,70 @@ class CHIP8
   def do_instruction(opcode)
     sym_op = get_opcode(opcode)
 
-    # n1 = (opcode & 0xf000) >> 12
-    # n2 = (opcode & 0x0f00) >> 8
-    # n3 = (opcode & 0x00f0) >> 4
-    # n4 = (opcode & 0x000f)
+    # Byte components
+    b1 = (opcode & 0xf000) >> 12
+    b2 = (opcode & 0x0f00) >> 8
+    b3 = (opcode & 0x00f0) >> 4
+    b4 = (opcode & 0x000f)
 
-    print "Op: ", sym_op, " | "
-    print "Desc: ", get_opcode_desc(opcode), "\n"
+    # print "Op: ", sym_op, " | "
+    # print "Desc: ", get_opcode_desc(opcode), "\n"
 
     # Massive opcode conditional incoming.
     case sym_op
-    when nil
-      kill_program()
     when "00E0"
+      # Clear the screen.
+      @display.each do |row|
+        row.each do |col|
+          col = 0
+        end
+      end
+
     when "00EE"
     when "0NNN"
     when "1NNN"
+      # Jump to address NNN
+      @instruction_ptr = opcode & 0x0fff
     when "2NNN"
     when "3XNN"
+      # Skips next instruction if VX == NN.
+      if @registers[b2] == opcode & 0x00ff
+        @instruction_ptr += 2
+      end
     when "4XNN"
+      # Skips next instruction if VX != NN.
+      if @registers[b2] != opcode & 0x00ff
+        @instruction_ptr += 2
+      end
     when "5XY0"
+      # Skips next instruction if VX == VY.
+      if @registers[b2] == @registers[b3]
+        @instruction_ptr += 2
+      end
     when "6XNN"
+      # Sets VX to NN
+      @registers[b2] = opcode & 0x00ff
     when "7XNN"
+      # Adds NN to VX
+      @registers[b2] += opcode & 0x00ff
     when "8XY0"
+      # Sets VX to VY
+      @registers[b2] += @registers[b3]
     when "8XY1"
+      # Sets VX to (VX or VY)
+      @registers[b2] |= @registers[b3]
     when "8XY2"
+      # Sets VX to (VX and VY)
+      @registers[b2] &= @registers[b3]
     when "8XY3"
+      # Sets VX to (VX xor VY)
+      @registers[b2] ^= @registers[b3]
     when "8XY4"
+      if @registers[b2] + @registers[b3] > 0xff
+        @registers[0xf] = 1
+      else
+        @registers[0xf] = 0
+      end
     when "8XY5"
     when "8XY6"
     when "8XY7"
@@ -121,7 +159,7 @@ class CHIP8
   # We must construct the opcode from two adjacent bytes in memory.
   # Most significant byte stored first (big-endian).
   def next_instruction()
-    opcode = (@memory[@instruction_ptr] << 8) + @memory[@instruction_ptr+1] 
+    opcode = (@memory[@instruction_ptr] << 8) + @memory[@instruction_ptr+1]
 
     if opcode == 0
       kill_program()

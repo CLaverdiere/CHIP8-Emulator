@@ -62,7 +62,7 @@ describe CHIP8 do
   describe "when loading in a rom" do
     it "must fill the memory buffer with opcode data" do
       @chip.load_rom(SAMPLE_ROM)
-      @chip.memory.inject(:+).wont_equal 0
+      @chip.memory.reduce(:+).wont_equal 0
     end
   end
 
@@ -78,6 +78,114 @@ describe CHIP8 do
     it "should set program_running to false" do
       @chip.kill_program()
       @chip.program_running.must_equal false
+    end
+  end
+
+  describe "Opcode 00E0" do
+    it "should set all display values to 0" do
+      @chip.do_instruction(0x00e0)
+      total = 0
+      @chip.display.each do |row|
+        row.each do |col|
+          total += col
+        end
+      end
+
+      total.must_equal 0
+    end
+  end
+
+  describe "Opcode 1NNN" do
+    it "should set instruction pointer to jumped-to address" do
+      @chip.do_instruction(0x15e4)
+      @chip.instruction_ptr.must_equal 0x5e4
+    end
+  end
+
+  describe "Opcode 3XNN" do
+    it "should skip the next instruction if VX == NN" do
+      orig_ip = @chip.instruction_ptr
+      @chip.registers[4] = 5
+      @chip.do_instruction(0x3405)
+      @chip.instruction_ptr.must_equal orig_ip + 2
+    end
+  end
+
+  describe "Opcode 4XNN" do
+    it "should skip the next instruction if VX != NN" do
+      orig_ip = @chip.instruction_ptr
+      @chip.registers[4] = 6
+      @chip.do_instruction(0x4405)
+      @chip.instruction_ptr.must_equal orig_ip + 2
+    end
+  end
+
+  describe "Opcode 5XY0" do
+    it "Should skip the next instruction if VX == VY." do
+      orig_ip = @chip.instruction_ptr
+      @chip.registers[4] = 6
+      @chip.registers[5] = 6
+      @chip.do_instruction(0x5450)
+      @chip.instruction_ptr.must_equal orig_ip + 2
+    end
+  end
+
+  describe "Opcode 6XNN" do
+    it "Should set VX to NN" do
+      @chip.do_instruction(0x6199)
+      @chip.registers[1].must_equal 0x99
+    end
+  end
+
+  describe "Opcode 7XNN" do
+    it "Should add NN to VX" do
+      @chip.registers[1] = 44
+      @chip.do_instruction(0x7101)
+      @chip.registers[1].must_equal 45
+    end
+  end
+
+  describe "Opcode 8XY0" do
+    it "Should set VX to VY" do
+      @chip.registers[5] = 12
+      @chip.do_instruction(0x8450)
+      @chip.registers[4].must_equal 12
+    end
+  end
+
+  describe "Opcode 8XY1" do
+    it "Should set VX to (VX or VY)" do
+      @chip.registers[4] = 0x10
+      @chip.registers[5] = 0x01
+      @chip.do_instruction(0x8451)
+      @chip.registers[4].must_equal 0x11
+    end
+  end
+
+  describe "Opcode 8XY2" do
+    it "Should set VX to (VX and VY)" do
+      @chip.registers[4] = 0x10
+      @chip.registers[5] = 0x01
+      @chip.do_instruction(0x8452)
+      @chip.registers[4].must_equal 0x00
+    end
+  end
+
+  describe "Opcode 8XY3" do
+    it "Should set VX to (VX xor VY)" do
+      @chip.registers[4] = 0x11
+      @chip.registers[5] = 0x01
+      @chip.do_instruction(0x8453)
+      @chip.registers[4].must_equal 0x10
+    end
+  end
+
+  describe "Opcode 8XY4" do
+    it "Should add VY to VX. VF set to 1 when carry, 0 otherwise" do
+      @chip.registers[4] = 0xff
+      @chip.registers[5] = 0x01
+      @chip.do_instruction(0x8454)
+      @chip.registers[0xf].must_equal 1
     end
   end
 
