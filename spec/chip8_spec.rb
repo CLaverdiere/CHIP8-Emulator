@@ -11,6 +11,12 @@ SAMPLE_ROM = "games/PONG"
 describe CHIP8 do
   before do
     @chip = CHIP8.new
+
+    describe "when starting the CHIP8" do
+      it "must have the instruction pointer start at 0x200" do
+        @chip.instruction_ptr.must_equal 0x200
+      end
+    end
   end
 
   describe "when asked about memory" do
@@ -182,10 +188,61 @@ describe CHIP8 do
 
   describe "Opcode 8XY4" do
     it "Should add VY to VX. VF set to 1 when carry, 0 otherwise" do
+      @chip.registers[0xf] = 0
       @chip.registers[4] = 0xff
       @chip.registers[5] = 0x01
       @chip.do_instruction(0x8454)
       @chip.registers[0xf].must_equal 1
+    end
+  end
+
+  describe "Opcode 8XY5" do
+    it "Should subtract VY from VX. Set VF to 0 when borrow, 1 otherwise" do
+      @chip.registers[0xf] = 1
+      @chip.registers[4] = 0x00
+      @chip.registers[5] = 0x01
+      @chip.do_instruction(0x8455)
+      @chip.registers[0xf].must_equal 0
+    end
+  end
+
+  describe "Opcode 8XY6" do
+    it "Should shift VX right by one. Set VF to the LSB of VX before the shift." do
+      @chip.registers[0xf] = 0
+      @chip.registers[7] = 0b1011
+      @chip.do_instruction(0x8706)
+      @chip.registers[7].must_equal 0b101
+      @chip.registers[0xf].must_equal 1
+    end
+  end
+
+  describe "Opcode 8XY6" do
+    it "Should set VX to (VY - VX). Set VF to 0 when borrow, otherwise 1" do
+      @chip.registers[0xf] = 1
+      @chip.registers[4] = 0x01
+      @chip.registers[5] = 0x00
+      @chip.do_instruction(0x8457)
+      @chip.registers[0xf].must_equal 0
+    end
+  end
+
+  describe "Opcode 8XYE" do
+    it "Should shift VX left by one. Set VF to the MSB of VX before the shift." do
+      @chip.registers[0xf] = 0
+      @chip.registers[7] = 0b1011
+      @chip.do_instruction(0x870e)
+      @chip.registers[7].must_equal 0b0110
+      @chip.registers[0xf].must_equal 1
+    end
+  end
+
+  describe "Opcode 9XY0" do
+    it "Should skip the next instruction if VX != VY." do
+      orig_ip = @chip.instruction_ptr
+      @chip.registers[4] = 6
+      @chip.registers[5] = 7
+      @chip.do_instruction(0x9450)
+      @chip.instruction_ptr.must_equal orig_ip + 2
     end
   end
 

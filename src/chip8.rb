@@ -1,19 +1,20 @@
 # Chip8 emulator class.
 
 class CHIP8
-  attr_accessor :display, :instruction_ptr, :memory, :program_running, :registers, :stack
+  attr_accessor :addr_register, :display, :instruction_ptr, :memory, :program_running, :registers, :stack
   attr_reader :opcode_table, :timers
 
-  # TODO need address register?
+  # TODO refactor for address register.
   def initialize()
+    @addr_register = 0
     @display = [[0] * 0x40] * 0x20
-    @instruction_ptr = 0
+    @instruction_ptr = 0x200
     @memory = [0] * 0x1000
+    @opcode_table = make_opcode_descs()
+    @program_running = true
     @registers = [0] * 0x10
     @stack = [0] * 0x40
     @timers = {delay: 0x40, sound: 0x40}
-    @opcode_table = make_opcode_descs()
-    @program_running = true
   end
 
   # Execute the given instruction.
@@ -26,11 +27,12 @@ class CHIP8
     b3 = (opcode & 0x00f0) >> 4
     b4 = (opcode & 0x000f)
 
-    # print "Op: ", sym_op, " | "
-    # print "Desc: ", get_opcode_desc(opcode), "\n"
+    print "Op: ", sym_op, " | "
+    print "Desc: ", get_opcode_desc(opcode), "\n"
 
     # Massive opcode conditional incoming.
     case sym_op
+
     when "00E0"
       # Clear the screen.
       @display.each do |row|
@@ -40,55 +42,103 @@ class CHIP8
       end
 
     when "00EE"
+
     when "0NNN"
+
     when "1NNN"
-      # Jump to address NNN
+      # Jump to address NNN.
       @instruction_ptr = opcode & 0x0fff
+
     when "2NNN"
+
     when "3XNN"
       # Skips next instruction if VX == NN.
       if @registers[b2] == opcode & 0x00ff
         @instruction_ptr += 2
       end
+
     when "4XNN"
       # Skips next instruction if VX != NN.
       if @registers[b2] != opcode & 0x00ff
         @instruction_ptr += 2
       end
+
     when "5XY0"
       # Skips next instruction if VX == VY.
       if @registers[b2] == @registers[b3]
         @instruction_ptr += 2
       end
+
     when "6XNN"
-      # Sets VX to NN
+      # Sets VX to NN.
       @registers[b2] = opcode & 0x00ff
+
     when "7XNN"
-      # Adds NN to VX
+      # Adds NN to VX.
       @registers[b2] += opcode & 0x00ff
+
     when "8XY0"
-      # Sets VX to VY
+      # Sets VX to VY.
       @registers[b2] += @registers[b3]
+
     when "8XY1"
-      # Sets VX to (VX or VY)
+      # Sets VX to (VX or VY).
       @registers[b2] |= @registers[b3]
+
     when "8XY2"
-      # Sets VX to (VX and VY)
+      # Sets VX to (VX and VY).
       @registers[b2] &= @registers[b3]
+
     when "8XY3"
-      # Sets VX to (VX xor VY)
+      # Sets VX to (VX xor VY).
       @registers[b2] ^= @registers[b3]
+
     when "8XY4"
-      if @registers[b2] + @registers[b3] > 0xff
+      # Adds VY to VX. Sets VF to 1 when carry, 0 otherwise.
+      # TODO may need to mod out b2.
+      @registers[b2] += @registers[b3]
+      if @registers[b2] > 0xff
         @registers[0xf] = 1
       else
         @registers[0xf] = 0
       end
+
     when "8XY5"
+      # Subtracts VY from VX. Sets VF to 0 when borrow, 1 otherwise.
+      # TODO may need to mod out b2.
+      @registers[b2] -= @registers[b3]
+      if @registers[b2] < 0
+        @registers[0xf] = 0
+      else
+        @registers[0xf] = 1
+      end
+
     when "8XY6"
+      # Shifts VX right by one. Sets VF to the LSB of VX before the shift.
+      @registers[0xf] = @registers[b2] % 2
+      @registers[b2] >>= 1
+
     when "8XY7"
+      # Sets VX to (VY - VX). Sets VF to 0 when borrow, otherwise 1.
+      # TODO may need to mod out b2.
+      @registers[b2] = @registers[b3] - @registers[b2]
+      if @registers[b2] < 0
+        @registers[0xf] = 0
+      else
+        @registers[0xf] = 1
+      end
+
     when "8XYE"
+      # Shifts VX left by one. Sets VF to the MSB of VX before the shift.
+      @registers[0xf] = (@registers[b2] / 0b1000 > 0 ? 1 : 0)
+      @registers[b2] = @registers[b2] << 1 & 0b0111
+
     when "9XY0"
+      # Skips next instruction if VX == VY.
+      if @registers[b2] != @registers[b3]
+        @instruction_ptr += 2
+      end
+
     when "ANNN"
     when "BNNN"
     when "CXNN"
@@ -133,7 +183,7 @@ class CHIP8
   # Load ROM file into memory.
   def load_rom(rom_filename)
     rom_file = File.new(rom_filename, "r")
-    memcnt = 0
+    memcnt = @instruction_ptr
     while (opcode = rom_file.read(2))
       opcode_bytes = opcode.bytes.to_a
       @memory[memcnt] = opcode_bytes[0]
