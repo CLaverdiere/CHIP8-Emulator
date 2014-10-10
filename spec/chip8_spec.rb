@@ -246,4 +246,27 @@ describe CHIP8 do
     end
   end
 
+  describe "Opcode ANNN" do
+    it "Should set the address register to NNN." do
+      @chip.do_instruction(0xA450)
+      @chip.addr_register.must_equal 0x450
+    end
+  end
+
+  describe "Opcode BNNN" do
+    it "Should set instruction pointer to address NNN + V0" do
+      @chip.registers[0] = 7
+      @chip.do_instruction(0xB450)
+      @chip.instruction_ptr.must_equal 0x450 + @chip.registers[0]
+    end
+  end
+
+  describe "Opcode CXNN" do
+    it "Should set VX to a random number ANDed to NN." do
+      @chip.registers[2] = 0x99
+      @chip.do_instruction(0xC255)
+      @chip.registers[2].must_be :<, 0x55
+    end
+  end
+
 end

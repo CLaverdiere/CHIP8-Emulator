@@ -4,7 +4,6 @@ class CHIP8
   attr_accessor :addr_register, :display, :instruction_ptr, :memory, :program_running, :registers, :stack
   attr_reader :opcode_table, :timers
 
-  # TODO refactor for address register.
   def initialize()
     @addr_register = 0
     @display = [[0] * 0x40] * 0x20
@@ -27,8 +26,8 @@ class CHIP8
     b3 = (opcode & 0x00f0) >> 4
     b4 = (opcode & 0x000f)
 
-    print "Op: ", sym_op, " | "
-    print "Desc: ", get_opcode_desc(opcode), "\n"
+    # print "Op: ", sym_op, " | "
+    # print "Desc: ", get_opcode_desc(opcode), "\n"
 
     # Massive opcode conditional incoming.
     case sym_op
@@ -42,14 +41,19 @@ class CHIP8
       end
 
     when "00EE"
+      # Return from a subroutine.
+      # TODO implement.
 
     when "0NNN"
+      # This one isn't actually used by games. Skip it.
 
     when "1NNN"
       # Jump to address NNN.
       @instruction_ptr = opcode & 0x0fff
 
     when "2NNN"
+      # Call subroutine at NNN.
+      # TODO implement.
 
     when "3XNN"
       # Skips next instruction if VX == NN.
@@ -140,9 +144,23 @@ class CHIP8
       end
 
     when "ANNN"
+      # Set address register to NNN.
+      @addr_register = opcode & 0x0fff
+
     when "BNNN"
+      # Set instruction pointer to address NNN + V0
+      @instruction_ptr = (opcode & 0x0fff) + @registers[0]
+
     when "CXNN"
+      # Set VX to a random number and NN.
+      @registers[b2] = [*0..(opcode & 0x00ff)].sample
+
     when "DXYN"
+      # Draw N bytes of sprites starting from address register I, 
+      #   at coordinates VX, VY. XORd onto screen. If any sprites overwritten,
+      #   set VF to 1, otherwise, 0. Wrap sprites if they go outside coordinates.
+      # TODO implement.
+
     when "EX9E"
     when "EXA1"
     when "FX07"
