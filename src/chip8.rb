@@ -1,18 +1,30 @@
 # Chip8 emulator class.
 
 class CHIP8
-  attr_accessor :addr_register, :display, :instruction_ptr, :memory, :program_running, :registers, :stack
-  attr_reader :opcode_table, :timers
+  attr_accessor :addr_register,
+                :display,
+                :instruction_ptr,
+                :keypad,
+                :memory,
+                :program_running,
+                :registers,
+                :stack,
+                :stack_ptr
+
+  attr_reader :opcode_table, 
+              :timers
 
   def initialize()
     @addr_register = 0
     @display = [[0] * 0x40] * 0x20
+    @keypad = [0] * 0x10
     @instruction_ptr = 0x200
     @memory = [0] * 0x1000
     @opcode_table = make_opcode_descs()
     @program_running = true
     @registers = [0] * 0x10
-    @stack = [0] * 0x40
+    @stack = [0] * 0x10
+    @stack_ptr = 0
     @timers = {delay: 0x40, sound: 0x40}
   end
 
@@ -42,7 +54,8 @@ class CHIP8
 
     when "00EE"
       # Return from a subroutine.
-      # TODO implement.
+      @instruction_ptr = @stack[@stack_ptr]
+      @stack_ptr -= 1;
 
     when "0NNN"
       # This one isn't actually used by games. Skip it.
@@ -53,7 +66,9 @@ class CHIP8
 
     when "2NNN"
       # Call subroutine at NNN.
-      # TODO implement.
+      @stack_ptr += 1
+      @stack[@stack_ptr] = @instruction_ptr
+      @instruction_ptr = opcode & 0x0fff
 
     when "3XNN"
       # Skips next instruction if VX == NN.
@@ -156,14 +171,42 @@ class CHIP8
       @registers[b2] = [*0..(opcode & 0x00ff)].sample
 
     when "DXYN"
-      # Draw N bytes of sprites starting from address register I, 
+      # Draw N bytes of sprites starting from address register I,
       #   at coordinates VX, VY. XORd onto screen. If any sprites overwritten,
       #   set VF to 1, otherwise, 0. Wrap sprites if they go outside coordinates.
-      # TODO implement.
+      overwritten = 0
+      for i in 0..b4
+        col_offset = (b2 + i) / 0x40
+        new_row = (b3 + col_offset) % 0x20
+        new_col = b2 % 0x40
+        old_pixel = @display[new_row][new_col]
+        new_pixel = @memory[@addr_register+i]
+        result = old_pixel ^ new_pixel
+
+        @display[new_row][new_col] = result
+        if old_pixel == 1 and new_pixel == 0
+          overwritten = 1
+        end
+      end
+
+      @registers[0xf] = overwritten
 
     when "EX9E"
+      # Skip the next instruction if the key stored in VX is pressed.
+      if keypad[b2] == 1
+        @instruction_ptr += 2
+      end
+
     when "EXA1"
+      # Skip the next instruction if the key stored in VX isn't pressed.
+      if keypad[b2] == 0
+        @instruction_ptr += 2
+      end
+
     when "FX07"
+      # Set VX to the value of the delay timer.
+      @registers[b2] = @timers[:delay]
+
     when "FX0A"
     when "FX15"
     when "FX18"

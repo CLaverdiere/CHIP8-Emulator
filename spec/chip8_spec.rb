@@ -34,8 +34,8 @@ describe CHIP8 do
   end
 
   describe "when asked about the stack" do
-    it "must have 64 bytes" do
-      @chip.stack.size.must_equal 64
+    it "must have 16, 16-bit values" do
+      @chip.stack.size.must_equal 16
     end
   end
 
@@ -50,6 +50,12 @@ describe CHIP8 do
     it "must have 64x32 pixels" do
       @chip.display.size.must_equal 32
       @chip.display.sample.size.must_equal 64
+    end
+  end
+
+  describe "when asked about the keypad" do
+    it "must have 16 keys" do
+      @chip.keypad.size.must_equal 16
     end
   end
 
@@ -81,14 +87,14 @@ describe CHIP8 do
   end
 
   describe "when killing the program" do
-    it "should set program_running to false" do
+    it "Should set program_running to false" do
       @chip.kill_program()
       @chip.program_running.must_equal false
     end
   end
 
   describe "Opcode 00E0" do
-    it "should set all display values to 0" do
+    it "Should set all display values to 0" do
       @chip.do_instruction(0x00e0)
       total = 0
       @chip.display.each do |row|
@@ -101,15 +107,36 @@ describe CHIP8 do
     end
   end
 
+  describe "Opcode 00EE" do
+    it "Should set ins ptr to top of stack, and dec stack ptr" do
+      old_ctr = @chip.stack_ptr
+      stack_val = @chip.stack[@chip.stack_ptr]
+      @chip.do_instruction(0x00EE)
+      @chip.instruction_ptr.must_equal stack_val
+      @chip.stack_ptr.must_equal (old_ctr - 1)
+    end
+  end
+
   describe "Opcode 1NNN" do
-    it "should set instruction pointer to jumped-to address" do
+    it "Should set instruction pointer to jumped-to address" do
       @chip.do_instruction(0x15e4)
       @chip.instruction_ptr.must_equal 0x5e4
     end
   end
 
+  describe "Opcode 2NNN" do
+    it "Should set inc the stack pointer, place the inst ptr on the stack, and set the inst ptr to NNN" do
+      old_ip = @chip.instruction_ptr
+      old_ctr = @chip.stack_ptr
+      @chip.do_instruction(0x254a)
+      @chip.stack[@chip.stack_ptr].must_equal old_ip
+      @chip.instruction_ptr.must_equal 0x54a
+      @chip.stack_ptr.must_equal (old_ctr + 1)
+    end
+  end
+
   describe "Opcode 3XNN" do
-    it "should skip the next instruction if VX == NN" do
+    it "Should skip the next instruction if VX == NN" do
       orig_ip = @chip.instruction_ptr
       @chip.registers[4] = 5
       @chip.do_instruction(0x3405)
@@ -118,7 +145,7 @@ describe CHIP8 do
   end
 
   describe "Opcode 4XNN" do
-    it "should skip the next instruction if VX != NN" do
+    it "Should skip the next instruction if VX != NN" do
       orig_ip = @chip.instruction_ptr
       @chip.registers[4] = 6
       @chip.do_instruction(0x4405)
@@ -266,6 +293,47 @@ describe CHIP8 do
       @chip.registers[2] = 0x99
       @chip.do_instruction(0xC255)
       @chip.registers[2].must_be :<, 0x55
+    end
+  end
+
+  # TODO this one is lengthy... I'll do this at the end of testing.
+  describe "Opcode DXYN" do
+    it "Should do a lot of things" do
+    end
+  end
+
+  describe "Opcode EX9E" do
+    it "Should skip the next instruction if the key stored in VX is pressed." do
+      old_ip = @chip.instruction_ptr
+      @chip.keypad[5] = 1
+      @chip.do_instruction(0xE59E)
+      @chip.instruction_ptr.must_equal (old_ip + 2)
+
+      old_ip = @chip.instruction_ptr
+      @chip.keypad[4] = 0
+      @chip.do_instruction(0xE49E)
+      @chip.instruction_ptr.must_equal (old_ip)
+    end
+  end
+
+  describe "Opcode EXA1" do
+    it "Should skip the next instruction if the key stored in VX isn't pressed." do
+      old_ip = @chip.instruction_ptr
+      @chip.keypad[5] = 0
+      @chip.do_instruction(0xE5A1)
+      @chip.instruction_ptr.must_equal (old_ip + 2)
+
+      old_ip = @chip.instruction_ptr
+      @chip.keypad[4] = 1
+      @chip.do_instruction(0xE4A1)
+      @chip.instruction_ptr.must_equal (old_ip)
+    end
+  end
+
+  describe "Opcode FX07" do
+    it "Should set VX to the value of the delay timer." do
+      @chip.do_instruction(0xF407)
+      @chip.registers[4].must_equal @chip.timers[:delay]
     end
   end
 
