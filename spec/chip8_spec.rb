@@ -337,4 +337,56 @@ describe CHIP8 do
     end
   end
 
+  describe "Opcode FX15" do
+    it "Should set the delay timer to VX." do
+      @chip.do_instruction(0xF715)
+      @chip.timers[:delay].must_equal 7
+    end
+  end
+
+  describe "Opcode FX18" do
+    it "Should set the sound timer to VX." do
+      @chip.do_instruction(0xF718)
+      @chip.timers[:sound].must_equal 7
+    end
+  end
+
+  describe "Opcode FX1E" do
+    it "Should add VX to I" do
+      old_ip = @chip.instruction_ptr
+      @chip.do_instruction(0xF51E)
+      @chip.instruction_ptr.must_equal (old_ip + 5)
+    end
+  end
+
+  # TODO requires sprite table first
+  describe "Opcode FX29" do
+    it "Should set I to the location of the sprite for the character in VX. Characters 0-F (in hexadecimal) are represented by a 4x5 font." do
+    end
+  end
+
+  # TODO requires sprite table first
+  describe "Opcode FX33" do
+    it "Should store the BCD representation of Vx in memory locations I, I+1, and I+2." do
+    end
+  end
+
+  describe "Opcode FX55" do
+    it "Should store V0 to VX in memory starting at address I." do
+      ip = @chip.instruction_ptr
+      @chip.registers[0,3] = [2, 7, 6]
+      @chip.do_instruction(0xF255)
+      @chip.memory[ip, 3].must_equal [2, 7, 6]
+    end
+  end
+
+  describe "Opcode FX65" do
+    it "Should fill V0 to VX with values from memory starting at address I." do
+      ip = @chip.instruction_ptr
+      @chip.memory[ip,3] = [2, 7, 6]
+      @chip.do_instruction(0xF265)
+      @chip.registers[0, 3].must_equal [2, 7, 6]
+    end
+  end
+
 end

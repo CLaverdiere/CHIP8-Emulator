@@ -114,23 +114,25 @@ class CHIP8
 
     when "8XY4"
       # Adds VY to VX. Sets VF to 1 when carry, 0 otherwise.
-      # TODO may need to mod out b2.
+      # Only keep lowest 8 bits.
       @registers[b2] += @registers[b3]
       if @registers[b2] > 0xff
         @registers[0xf] = 1
       else
         @registers[0xf] = 0
       end
+      @registers[b2] &= 0xff
 
     when "8XY5"
       # Subtracts VY from VX. Sets VF to 0 when borrow, 1 otherwise.
-      # TODO may need to mod out b2.
+      # Only keep lowest 8 bits.
       @registers[b2] -= @registers[b3]
       if @registers[b2] < 0
         @registers[0xf] = 0
       else
         @registers[0xf] = 1
       end
+      @registers[b2] &= 0xff
 
     when "8XY6"
       # Shifts VX right by one. Sets VF to the LSB of VX before the shift.
@@ -139,13 +141,14 @@ class CHIP8
 
     when "8XY7"
       # Sets VX to (VY - VX). Sets VF to 0 when borrow, otherwise 1.
-      # TODO may need to mod out b2.
+      # Only keep lowest 8 bits.
       @registers[b2] = @registers[b3] - @registers[b2]
       if @registers[b2] < 0
         @registers[0xf] = 0
       else
         @registers[0xf] = 1
       end
+      @registers[b2] &= 0xff
 
     when "8XYE"
       # Shifts VX left by one. Sets VF to the MSB of VX before the shift.
@@ -171,6 +174,7 @@ class CHIP8
       @registers[b2] = [*0..(opcode & 0x00ff)].sample
 
     when "DXYN"
+      # TODO this should draw sprites, not just memory bits.
       # Draw N bytes of sprites starting from address register I,
       #   at coordinates VX, VY. XORd onto screen. If any sprites overwritten,
       #   set VF to 1, otherwise, 0. Wrap sprites if they go outside coordinates.
@@ -207,14 +211,45 @@ class CHIP8
       # Set VX to the value of the delay timer.
       @registers[b2] = @timers[:delay]
 
+    # TODO
     when "FX0A"
+      # A key press is awaited, and then stored in VX.
+
     when "FX15"
+      # Sets the delay timer to VX.
+      @timers[:delay] = b2
+
     when "FX18"
+      # Sets the sound timer to VX.
+      @timers[:sound] = b2
+
     when "FX1E"
+      # Adds VX to I
+      @instruction_ptr += b2
+
+    # TODO
     when "FX29"
+      # Set I to the location of the sprite for the character in VX. Characters
+      # 0-F (in hexadecimal) are represented by a 4x5 font.
+
+    # TODO
     when "FX33"
+      # Store the BCD representation of Vx in memory locations I, I+1, and I+2.
+      # The interpreter takes the decimal value of Vx, and places the hundreds
+      # digit in memory at location in I, the tens digit at location I+1, and
+      # the ones digit at location I+2.
+
     when "FX55"
+      # Store V0 to VX in memory starting at address I.
+      for i in 0..b2
+        @memory[@instruction_ptr + i] = @registers[i]
+      end
+
     when "FX65"
+      # Fill V0 to VX with values from memory starting at address I.
+      for i in 0..b2
+        @registers[i] = @memory[@instruction_ptr + i]
+      end
     end
   end
 
